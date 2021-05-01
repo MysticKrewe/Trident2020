@@ -1,6 +1,8 @@
 /**************************************************************************
        This file is part of Trident2020.
 
+code/bsos/work/Trident2020/Trident2020.ino
+
     I, Dick Hamill, the author of this program disclaim all copyright
     in order to make this program freely available in perpetuity to
     anyone who would like to use it. Dick Hamill, 12/1/2020
@@ -42,9 +44,6 @@ SendOnlyWavTrigger wTrig;             // Our WAV Trigger object
 
 *********************************************************************/
 
-// Mods by Mike/MysticKrewe
-#define BONUS_COUNT_TIME  250 // was 200 and hard coded
-
 // MachineState
 //  0 - Attract Mode
 //  negative - self-test modes
@@ -84,7 +83,7 @@ boolean MachineStateChanged = true;
 #define GAME_MODE_WIZARD_WITHOUT_FLAGS          0x0F
 #define GAME_MODE_WIZARD                        0x7F
 
-#define EEPROM_BALL_SAVE_BYTE           100
+#define EEPROM_BALL_SAVE_BYTE           100 // copied to paragonbase
 #define EEPROM_FREE_PLAY_BYTE           101
 #define EEPROM_MUSIC_LEVEL_BYTE         102
 #define EEPROM_SKILL_SHOT_BYTE          103
@@ -263,6 +262,8 @@ boolean ShowingModeStats = false;
 byte GameMode = GAME_MODE_SKILL_SHOT;
 byte MaxTiltWarnings = 2;
 byte NumTiltWarnings = 0;
+
+// game specific
 byte SaucerValue = 0;
 byte ShowSaucerHit = 0;
 byte LastStandupTargetHit = 0;
@@ -404,7 +405,10 @@ void setup() {
 
   CurrentTime = millis();
   PlaySoundEffect(SOUND_EFFECT_TRIDENT_INTRO);
-}
+} // end: setup()
+
+//===============================================================================
+
 
 byte ReadSetting(byte setting, byte defaultValue) {
   byte value = EEPROM.read(setting);
@@ -439,7 +443,7 @@ void ShowBonusOnTree(byte bonus, byte dim=0) {
 
   if (bonus>=cap) {
     while(bonus>=cap) {
-      BSOS_SetLampState(BONUS_1 + (cap-1), 1, dim, 250);
+      BSOS_SetLampState(BONUS_1 + (cap-1), 1, dim, 250); // I belive the 250 should sync with the bonus countdown time
       bonus -= cap;
       cap -= 1;
       if (cap==0) {
@@ -741,7 +745,7 @@ void ShowShootAgainLamp() {
 
 ////////////////////////////////////////////////////////////////////////////
 //
-//  Display Management functions
+//  Display Management functions  (copied to paragonbase.ino)
 //
 ////////////////////////////////////////////////////////////////////////////
 unsigned long LastTimeScoreChanged = 0;
@@ -916,6 +920,8 @@ void ShowPlayerScores(byte displayToUpdate, boolean flashCurrent, boolean dashCu
   }
 
 }
+//---------------------------------------------------------------------------
+
 
 
 
@@ -965,7 +971,7 @@ void AddCoinToAudit(byte switchHit) {
 
 }
 
-
+//////////////////////
 void AddCredit(boolean playSound = false, byte numToAdd = 1) {
   if (Credits < MaximumCredits) {
     Credits += numToAdd;
@@ -980,12 +986,18 @@ void AddCredit(boolean playSound = false, byte numToAdd = 1) {
   }
 
 }
-
+////////////////////////////
 void AddSpecialCredit() {
   AddCredit(false, 1);
   BSOS_PushToTimedSolenoidStack(SOL_KNOCKER, 3, CurrentTime, true);
   BSOS_WriteULToEEProm(BSOS_TOTAL_REPLAYS_EEPROM_START_BYTE, BSOS_ReadULFromEEProm(BSOS_TOTAL_REPLAYS_EEPROM_START_BYTE) + 1);  
 }
+////////////////////////////
+// zz
+
+
+
+
 
 
 #define ADJ_TYPE_LIST                 1
@@ -1190,12 +1202,9 @@ int RunSelfTest(int curState, boolean curStateChanged) {
   return returnState;
 }
 
-
-
-
 ////////////////////////////////////////////////////////////////////////////
 //
-//  Audio Output functions
+//  Audio Output functions  (copied/modified to paragonbase)
 //
 ////////////////////////////////////////////////////////////////////////////
 
@@ -1266,7 +1275,7 @@ byte GetFromSoundQueue(unsigned long pullTime) {
   return 0xFF;
 }
 
-#endif
+#endif  // bally_stern_os_use_sb100
 
 
 unsigned long NextSoundEffectTime = 0;
@@ -1442,6 +1451,12 @@ void PlaySoundEffect(byte soundEffectNum) {
 }
 
 
+
+
+
+
+
+
 ////////////////////////////////////////////////////////////////////////////
 //
 //  Attract Mode
@@ -1596,7 +1611,7 @@ void ResetDropTargets() {
       BSOS_PushToTimedSolenoidStack(SOL_DROP_TARGET_1, 4, CurrentTime + 700);
       BSOS_PushToTimedSolenoidStack(SOL_DROP_TARGET_3, 4, CurrentTime + 750);
       BSOS_PushToTimedSolenoidStack(SOL_DROP_TARGET_5, 4, CurrentTime + 800);
-      CurrentDropTargetsValid = 0x0A;
+      CurrentDropTargetsValid = 0x0A;  // a bitmask showing which of the 5 targets are up/switch readable
     } else if (BonusX==2) {
       BSOS_PushToTimedSolenoidStack(SOL_DROP_TARGET_2, 4, CurrentTime + 600);
       BSOS_PushToTimedSolenoidStack(SOL_DROP_TARGET_4, 4, CurrentTime + 650);
@@ -1612,8 +1627,18 @@ void ResetDropTargets() {
 }
 
 
+
+
+// zz
+
+
+
+
+
+
+
 void HandleDropTargetHit(byte switchHit, unsigned long scoreMultiplier) {
-  if (GameMode==GAME_MODE_SKILL_SHOT) {
+  if (GameMode==GAME_MODE_SKILL_SHOT) { // hitting drop target during skill shot reward 2x multiplier
     BonusX = 2;
     PlaySoundEffect(SOUND_EFFECT_DT_SKILL_SHOT);
     ResetDropTargets();
@@ -1712,7 +1737,7 @@ void HandleStandupHit(byte switchHit, unsigned long scoreMultiplier) {
     }
     if ((NumberOfStandupClears%ExploreTheDepthsStart)==0) {
       PlaySoundEffect(SOUND_EFFECT_EXPLORE_QUALIFIED);
-      GameModeFlagsQualified |= GAME_MODE_EXPLORE_THE_DEPTHS_FLAG;
+      GameModeFlagsQualified |= GAME_MODE_EXPLORE_THE_DEPTHS_FLAG; // this is how mode stacking works
     } else {
       PlaySoundEffect(SOUND_EFFECT_STANDUPS_CLEARED);
       CurrentPlayerCurrentScore+=10000;  
@@ -2167,7 +2192,7 @@ int CountdownBonus(boolean curStateChanged) {
     BonusCountDownEndTime = 0xFFFFFFFF;
   }
 
-  if ((CurrentTime - LastCountdownReportTime) > BONUS_COUNT_TIME) {
+  if ((CurrentTime - LastCountdownReportTime) > 200) {
 
     if (Bonus > 0) {
 
